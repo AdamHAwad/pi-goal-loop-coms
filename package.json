@@ -1,0 +1,22 @@
+{
+  "name": "pi-goal-computer-use",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pi extensions and setup for a persistent goal loop, GoalBuddy boards, and computer-use workflows.",
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/check-extension.mjs",
+    "install:local": "node scripts/install.mjs",
+    "doctor": "node scripts/doctor.mjs"
+  },
+  "keywords": [
+    "pi",
+    "coding-agent",
+    "goal-loop",
+    "goalbuddy",
+    "computer-use",
+    "accessibility"
+  ],
+  "license": "MIT",
+  "devDependencies": {}
+}

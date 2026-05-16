@@ -1,0 +1,16 @@
+{
+  "settings": {
+    "toolPrefix": "server",
+    "idleTimeout": 10
+  },
+  "mcpServers": {
+    "open-computer-use": {
+      "command": "open-computer-use",
+      "args": [
+        "mcp"
+      ],
+      "lifecycle": "lazy",
+      "directTools": true
+    }
+  }
+}
