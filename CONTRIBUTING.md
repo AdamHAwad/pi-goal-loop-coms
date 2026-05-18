@@ -23,17 +23,13 @@ Thanks for improving this Pi extension pack.
    /reload
    ```
 
-5. Smoke test a low-risk goal:
+5. Smoke test a low-risk GoalBuddy-backed team:
 
    ```text
-   /goal Say tick, then mark the goal complete.
+   /goal-prep Make a tiny documentation improvement. Success means a GoalBuddy board is created and no unrelated files are changed.
    ```
 
-6. If you changed GoalBuddy behavior, also test:
-
-   ```text
-   /goal-prep Make a tiny documentation improvement.
-   ```
+6. Start the printed `/goal Follow docs/goals/<slug>/goal.md.` handoff, confirm cmux opens the child-agent panels, then run `/goal team-status` and `/goal team-stop`.
 
 7. If you changed computer-use config, run:
 
@@ -46,7 +42,8 @@ Thanks for improving this Pi extension pack.
 - Keep the install path simple: users should be able to run `npm run install:local` and `/reload`.
 - Preserve existing user MCP servers when editing `~/.pi/agent/mcp.json`.
 - Do not vendor `open-computer-use` binaries, private app bundles, or OS permissions.
-- Keep GoalBuddy useful but optional.
+- Treat cmux as a core dependency for the local multi-agent workflow.
+- Keep GoalBuddy central to prep/board-backed goals while preserving direct `/goal <objective>` usage.
 - Prefer clear user-facing documentation over implementation notes in the README.
 - Do not mark a goal complete unless current evidence proves the requested outcome is done.
 

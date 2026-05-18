@@ -28,15 +28,17 @@ async function mcpConfig(path) {
   }
 }
 
+const home = process.env.HOME || ".";
 const checks = [];
 checks.push(["pi", await command("pi", ["--version"])]);
 checks.push(["node", await command("node", ["--version"])]);
 checks.push(["GoalBuddy", await command("npx", ["--yes", "goalbuddy@0.3.6", "--version"])]);
-checks.push(["cmux", await command("cmux", ["--help"])]);
-const home = process.env.HOME || ".";
+checks.push(["cmux (required for /goal team)", await command("cmux", ["--help"])]);
 checks.push(["installed goal extension", { ok: await file(resolve(home, ".pi/agent/extensions/goal/index.ts")), text: "~/.pi/agent/extensions/goal/index.ts" }]);
-checks.push(["open-computer-use CLI", await command("open-computer-use", ["version"])]);
-checks.push(["open-computer-use MCP config", await mcpConfig(resolve(home, ".pi/agent/mcp.json"))]);
+checks.push(["installed same-machine coms", { ok: await file(resolve(home, ".pi/agent/extensions/pi-vs-claude-code-coms/coms.ts")), text: "~/.pi/agent/extensions/pi-vs-claude-code-coms/coms.ts" }]);
+checks.push(["installed network coms", { ok: await file(resolve(home, ".pi/agent/extensions/pi-vs-claude-code-coms/coms-net.ts")), text: "~/.pi/agent/extensions/pi-vs-claude-code-coms/coms-net.ts" }]);
+checks.push(["open-computer-use CLI (optional)", await command("open-computer-use", ["version"])]);
+checks.push(["open-computer-use MCP config (optional)", await mcpConfig(resolve(home, ".pi/agent/mcp.json"))]);
 
 for (const [name, result] of checks) {
   console.log(`${result.ok ? "✓" : "?"} ${name}: ${result.text}`);

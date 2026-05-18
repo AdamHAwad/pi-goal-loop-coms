@@ -1,33 +1,23 @@
 # How it works
 
-This page is for users who want to know what the installer changes and how the pieces fit together.
+This page explains what the installer changes and how the pieces fit together.
 
 ## Installed files
 
 Running `npm run install:local` writes to your Pi config directory:
 
 ```text
-~/.pi/agent/extensions/goal/index.ts   /goal, /goal-prep, and /goalbuddy
-~/.pi/agent/mcp.json                   merged open-computer-use MCP server entry
+~/.pi/agent/extensions/goal/index.ts
+~/.pi/agent/extensions/pi-vs-claude-code-coms/coms.ts
+~/.pi/agent/extensions/pi-vs-claude-code-coms/coms-net.ts
+~/.pi/agent/extensions/pi-vs-claude-code-coms/scripts/coms-net-server.ts
+~/.pi/agent/extensions/pi-vs-claude-code-coms/themeMap.ts
+~/.pi/agent/mcp.json
 ```
 
-The installer preserves existing MCP servers and replaces only the `open-computer-use` entry when needed.
+The installer preserves existing MCP servers and replaces/merges only the `open-computer-use` entry when needed.
 
-## Goal loop
-
-`/goal <objective>` creates an active goal for the current Pi thread. After each assistant run, Pi queues a follow-up turn so the assistant can continue making progress without you restating the objective.
-
-The loop stops when one of these happens:
-
-- the assistant proves the objective is complete
-- you run `/goal pause`
-- you run `/goal clear`
-- a configured token budget is reached
-- the Pi session ends
-
-Use `/goal resume` to continue a paused goal.
-
-## GoalBuddy boards
+## Golden Goal Prep
 
 `/goal-prep <objective>` starts a short intake conversation. When the goal is clear, Pi creates a file-backed GoalBuddy board in:
 
@@ -41,10 +31,105 @@ Important files:
 goal.md                  human-readable goal charter
 state.yaml               board state and task list
 notes/prep-grounding.md  initial repo/context notes
-notes/                   longer receipts and follow-up notes
+notes/                   durable receipts and follow-up notes
 ```
 
-When you start `/goal Follow docs/goals/<slug>/goal.md.`, the goal loop treats `state.yaml` as the board source of truth.
+The `/goal-prep` command keeps the text after the command in hidden prep context, so the assistant should not ask the user to restate details already provided.
+
+## `/goal` launcher
+
+When run from a normal parent Pi session, `/goal <objective>` is launcher/control-surface behavior:
+
+1. resolve the GoalBuddy root when the objective references `docs/goals/<slug>/goal.md`
+2. ensure the local coms extension is installed
+3. resolve `cmux` (required for the local multi-agent workflow)
+4. create role prompts under `docs/goals/<slug>/notes/agent-prompts/` or `.pi/goal-agent-prompts/<project>/`
+5. write `team.yaml`
+6. open a four-pane `cmux` workspace
+7. start four child Pi processes
+8. clear the parent goal loop so the parent session does not continue autonomously
+
+The parent then provides control commands:
+
+```text
+/goal team-status
+/goal team-open
+/goal team-stop
+```
+
+## Child agents
+
+Each child Pi process is launched with both extensions:
+
+```bash
+pi --no-extensions \
+  -e ~/.pi/agent/extensions/goal/index.ts \
+  -e ~/.pi/agent/extensions/pi-vs-claude-code-coms/coms.ts \
+  --goal-team-child \
+  --goal-role <role> \
+  --goal-root docs/goals/<slug> \
+  --goal-project goal-<slug> \
+  --name <role> \
+  --project goal-<slug> \
+  --purpose "<role purpose>" \
+  @docs/goals/<slug>/notes/agent-prompts/<role>.md \
+  "Read the attached role prompt and begin the goal loop."
+```
+
+Child agents create their own durable role-specific goal and receive GoalBuddy/team/lifecycle context before each run.
+
+## Role selection
+
+The launcher creates four specialized peer roles. Role names adapt to the objective:
+
+- UI/frontend goals: `ux-scout`, `ui-planner`, `ui-worker`, `a11y-verifier`
+- migration/API/parity goals: `source-scout`, `target-scout`, `migration-worker`, `parity-verifier`
+- bug/regression goals: `repro-scout`, `fix-planner`, `bugfix-worker`, `regression-verifier`
+- default: `scout`, `planner`, `worker`, `verifier`
+
+The planner/steward may maintain board coherence, but it is not an orchestrator. Any peer may message any other peer.
+
+## Peer communication
+
+Same-machine coms uses local sockets/pipes and registry files under:
+
+```text
+~/.pi/coms/projects/<project>/agents/
+```
+
+The important tools are:
+
+```text
+coms_list   discover peers
+coms_send   send a prompt to a peer
+coms_get    poll a response without blocking
+coms_await  wait for a response, capped in goal children to reduce deadlock risk
+```
+
+The goal extension prompts children to prefer `send → keep working → poll later` over symmetric blocking waits.
+
+## Lifecycle control
+
+Child agents can call:
+
+```text
+goal_agent_status({
+  status: "active" | "idle" | "blocked" | "done",
+  summary?: string,
+  wake_on_coms?: boolean,
+  receipt_paths?: string[]
+})
+```
+
+Only `active` children auto-continue after `agent_end`. `idle`, `blocked`, and `done` children still receive inbound coms/user context, but they do not keep burning turns on their own.
+
+Status files are written to:
+
+```text
+docs/goals/<slug>/notes/agent-status/<role>.json
+```
+
+or the fallback prompt directory when no GoalBuddy root exists.
 
 ## Board UI
 
@@ -60,25 +145,27 @@ The default board URL is:
 http://127.0.0.1:41737/<slug>/
 ```
 
-If `cmux` is installed, the extension tries to open the board there. Otherwise it opens the system browser and prints the link.
+The board opens through the existing board-opening path, which prefers `cmux browser open` and falls back to the system browser/link notification if needed. It is not inserted as a right-side browser pane in the four-agent `cmux` workspace.
 
 ## Computer use
 
-`extensions/open-computer-use/mcp.json` defines the Pi MCP server for desktop control:
+`extensions/open-computer-use/mcp.json` defines the optional Pi MCP server for desktop control:
 
 ```bash
 open-computer-use mcp
 ```
 
-When installed, Pi can expose those tools directly to the assistant. The repository provides configuration only; the `open-computer-use` CLI and operating-system permissions are managed separately.
+The repository provides configuration only; the `open-computer-use` CLI and operating-system permissions are managed separately.
 
 ## What is not installed
 
 This repository does not install or bundle:
 
 - Pi itself
+- cmux
 - the `open-computer-use` binary
 - private app bundles
 - macOS Accessibility or Screen Recording permissions
+- API keys, credentials, or secrets
 
 Use `npm run doctor` to check the local setup.

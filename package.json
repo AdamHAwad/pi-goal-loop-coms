@@ -1,8 +1,8 @@
 {
-  "name": "pi-goal-computer-use",
-  "version": "0.1.0",
+  "name": "pi-goal-loop-coms",
+  "version": "0.2.0",
   "private": true,
-  "description": "Pi extensions and setup for a persistent goal loop, GoalBuddy boards, and computer-use workflows.",
+  "description": "Pi extensions and setup for Golden Goal Prep, durable goal loops, and flat multi-agent coms teams.",
   "type": "module",
   "scripts": {
     "check": "node scripts/check-extension.mjs",
@@ -14,8 +14,9 @@
     "coding-agent",
     "goal-loop",
     "goalbuddy",
-    "computer-use",
-    "accessibility"
+    "multi-agent",
+    "peer-to-peer",
+    "computer-use"
   ],
   "license": "MIT",
   "devDependencies": {}
