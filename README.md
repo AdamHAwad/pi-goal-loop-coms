@@ -11,6 +11,7 @@ This repo installs a Pi workflow that can:
 - turn a rough request into a grounded GoalBuddy board with `/goal-prep`
 - start `/goal` from that board
 - launch four focused Pi agents in a `cmux` workspace
+- embed the GoalBuddy board as a full-height right-side browser panel when a board URL is available
 - give those agents peer-to-peer communication through local `coms_*` tools
 - keep durable receipts in `docs/goals/<slug>/notes/`
 - leave the parent Pi session as a launcher/control surface, not the worker
@@ -25,7 +26,7 @@ Use it for coding tasks that benefit from a visible plan, specialized context wi
 | [Pi coding agent](https://github.com/earendil-works/pi-coding-agent) | Required | Provides extensions, slash commands, tools, and session events. |
 | Node.js + npm | Required | Used by installer, doctor, and GoalBuddy board commands. |
 | [GoalBuddy](https://github.com/tolibear/goalbuddy) | Required for Golden Goal Prep boards | Run through `npx --yes goalbuddy@0.3.6`. |
-| [`cmux`](https://github.com/manaflow-ai/cmux) | Required for the multi-agent workflow | `/goal` uses cmux commands to open the four child-agent panels and the GoalBuddy board. |
+| [`cmux`](https://github.com/manaflow-ai/cmux) | Required for the multi-agent workflow | `/goal` uses cmux layout commands to open the four child-agent panels plus a right-side GoalBuddy browser panel when available. |
 | [`open-computer-use`](https://github.com/iFurySt/open-codex-computer-use) | Optional | Only needed if you want desktop UI/screenshot/accessibility tools. |
 
 ## Install
@@ -60,7 +61,7 @@ The installer copies:
 
 It also merges the optional `open-computer-use` MCP config into `~/.pi/agent/mcp.json` without removing your existing MCP servers.
 
-`cmux` is intentionally treated as a core dependency for this workflow: the goal-team launcher uses it for the four child-agent panels, and board-opening helpers prefer cmux for GoalBuddy board viewing.
+`cmux` is intentionally treated as a core dependency for this workflow: the goal-team launcher uses it for the four child-agent panels, embeds the GoalBuddy board as a right-side browser panel when available, and board-opening helpers prefer cmux for standalone GoalBuddy board viewing.
 
 ## Pi-agent install prompt
 
@@ -111,7 +112,7 @@ For a direct goal without prep:
 | `/goal <objective>` | Launch a flat local Pi-to-Pi goal team. |
 | `/goal Follow docs/goals/<slug>/goal.md.` | Launch the team from a GoalBuddy board. |
 | `/goal` | Show current parent/team status. |
-| `/goal team-status` | Show CMUX workspace, live coms registry entries, agent lifecycle state, and receipts. |
+| `/goal team-status` | Show CMUX workspace, GoalBuddy board URL, live coms registry entries, agent lifecycle state, and receipts. |
 | `/goal team-open` | Reopen/select the known CMUX workspace. |
 | `/goal team-stop` | Stop known child agents and close the workspace when possible. |
 

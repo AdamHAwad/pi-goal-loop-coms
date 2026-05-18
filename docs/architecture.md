@@ -45,9 +45,10 @@ When run from a normal parent Pi session, `/goal <objective>` is launcher/contro
 3. resolve `cmux` (required for the local multi-agent workflow)
 4. create role prompts under `docs/goals/<slug>/notes/agent-prompts/` or `.pi/goal-agent-prompts/<project>/`
 5. write `team.yaml`
-6. open a four-pane `cmux` workspace
-7. start four child Pi processes
-8. clear the parent goal loop so the parent session does not continue autonomously
+6. open a `cmux` workspace with four child-agent terminal panels
+7. when a GoalBuddy board URL is known, add a full-height browser panel on the right side of that same workspace
+8. start four child Pi processes
+9. clear the parent goal loop so the parent session does not continue autonomously
 
 The parent then provides control commands:
 
@@ -145,7 +146,7 @@ The default board URL is:
 http://127.0.0.1:41737/<slug>/
 ```
 
-The board opens through the existing board-opening path, which prefers `cmux browser open` and falls back to the system browser/link notification if needed. It is not inserted as a right-side browser pane in the four-agent `cmux` workspace.
+When `/goal` launches from a GoalBuddy-backed goal and a board URL is known, the `cmux` workspace layout embeds that URL as a full-height browser panel on the right. The four child-agent terminals stay in a 2×2 grid on the left. Standalone board commands such as `/goalbuddy open` still use the board-opening path, which prefers `cmux browser open` and falls back to the system browser/link notification if needed.
 
 ## Computer use
 

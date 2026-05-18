@@ -24,8 +24,8 @@ Use this before publishing a new version or pushing a release branch.
   /goal Follow docs/goals/<slug>/goal.md.
   ```
 
-- [ ] Confirm `cmux` is installed and opens four child Pi panels.
-- [ ] Confirm `docs/goals/<slug>/team.yaml` exists.
+- [ ] Confirm `cmux` is installed and opens four child Pi panels plus a full-height right-side GoalBuddy browser panel.
+- [ ] Confirm `docs/goals/<slug>/team.yaml` exists and includes the board URL.
 - [ ] Confirm `docs/goals/<slug>/notes/agent-prompts/*.md` exists.
 - [ ] Confirm `docs/goals/<slug>/notes/agent-status/*.json` exists after children run.
 - [ ] Run `/goal team-status` and confirm the parent loop is inactive.

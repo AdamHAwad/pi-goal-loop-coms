@@ -21,6 +21,7 @@ const COMMON_CMUX_PATHS = [
 	"/opt/homebrew/bin/cmux",
 	"/usr/local/bin/cmux",
 ].filter((value): value is string => typeof value === "string" && value.length > 0);
+const GOAL_TEAM_TERMINAL_GRID_SPLIT = 0.72;
 const MAX_GOAL_CHILD_COMS_AWAIT_MS = 5_000;
 const EXACT_UPDATE_REJECTION =
 	"update_goal can only mark the existing goal complete; pause, resume, and budget-limited status changes are controlled by the user or system";
@@ -81,6 +82,7 @@ type GoalAgentTeamState = {
 	workspaceRef?: string;
 	workspaceName?: string;
 	goalRoot?: string;
+	boardUrl?: string;
 	promptDir: string;
 	teamYamlPath?: string;
 	startedAt: number;
@@ -716,15 +718,22 @@ function makePiAgentCommand(ctx: ExtensionContext, role: LocalGoalAgentRole, pro
 	return ["pi", ...args].map(shellQuote).join(" ");
 }
 
-function fourPaneCmuxLayout(commands: string[]) {
+function goalTeamCmuxLayout(commands: string[], boardUrl?: string) {
 	const terminal = (command: string) => ({ pane: { surfaces: [{ type: "terminal", command }] } });
-	return {
+	const browser = (url: string) => ({ pane: { surfaces: [{ type: "browser", url }] } });
+	const terminalGrid = {
 		direction: "horizontal",
 		split: 0.5,
 		children: [
 			{ direction: "vertical", split: 0.5, children: [terminal(commands[0]), terminal(commands[1])] },
 			{ direction: "vertical", split: 0.5, children: [terminal(commands[2]), terminal(commands[3])] },
 		],
+	};
+	if (!boardUrl) return terminalGrid;
+	return {
+		direction: "horizontal",
+		split: GOAL_TEAM_TERMINAL_GRID_SPLIT,
+		children: [terminalGrid, browser(boardUrl)],
 	};
 }
 
@@ -733,7 +742,7 @@ function parseWorkspaceRef(output: string) {
 }
 
 function makeGoalTeamYaml(team: GoalAgentTeamState, objective: string) {
-	return `version: 1\nproject: ${yamlQuote(team.project)}\nmode: local-coms\nparent_is_launcher_only: true\nchild_agents_own_goal_loop: true\nflat_peer_team: true\nworkspace_ref: ${team.workspaceRef ? yamlQuote(team.workspaceRef) : "null"}\nworkspace_name: ${team.workspaceName ? yamlQuote(team.workspaceName) : "null"}\ngoal_root: ${team.goalRoot ? yamlQuote(team.goalRoot) : "null"}\nprompt_dir: ${yamlQuote(team.promptDir)}\nstarted_at: ${team.startedAt}\nobjective: ${yamlQuote(objective)}\nrelationship_rules:\n  - "Parent Pi session is launcher / monitor / cleanup only."\n  - "Child Pi agents are equal coworkers in the goal loop."\n  - "No child agent is a permanent orchestrator."\n  - "Planner/steward maintains board coherence but is not the boss."\n  - "Any agent may directly message any other agent."\n  - "Best repo-grounded evidence wins."\ncommunication:\n  extension: ${yamlQuote(LOCAL_COMS_EXTENSION_PATH)}\n  tools:\n    - coms_list\n    - coms_send\n    - coms_get\n    - coms_await\n  prefer_polling_over_blocking_await: true\n  avoid_ping_pong_loops: true\nlifecycle:\n  tool: goal_agent_status\n  statuses:\n    - active\n    - idle\n    - blocked\n    - done\n  auto_continue_only_when: active\n  idle_blocked_and_done_stop_autonomous_loop: true\n  status_dir: ${yamlQuote(team.goalRoot ? `${team.goalRoot}/notes/agent-status` : `${team.promptDir}/agent-status`)}\nagents:\n${team.agents.map((agent) => `  - name: ${yamlQuote(agent.name)}\n    purpose: ${yamlQuote(agent.purpose)}\n    prompt: ${yamlQuote(agent.promptPath)}`).join("\n")}\n`;
+	return `version: 1\nproject: ${yamlQuote(team.project)}\nmode: local-coms\nparent_is_launcher_only: true\nchild_agents_own_goal_loop: true\nflat_peer_team: true\nworkspace_ref: ${team.workspaceRef ? yamlQuote(team.workspaceRef) : "null"}\nworkspace_name: ${team.workspaceName ? yamlQuote(team.workspaceName) : "null"}\ngoal_root: ${team.goalRoot ? yamlQuote(team.goalRoot) : "null"}\nboard_url: ${team.boardUrl ? yamlQuote(team.boardUrl) : "null"}\nprompt_dir: ${yamlQuote(team.promptDir)}\nstarted_at: ${team.startedAt}\nobjective: ${yamlQuote(objective)}\nrelationship_rules:\n  - "Parent Pi session is launcher / monitor / cleanup only."\n  - "Child Pi agents are equal coworkers in the goal loop."\n  - "No child agent is a permanent orchestrator."\n  - "Planner/steward maintains board coherence but is not the boss."\n  - "Any agent may directly message any other agent."\n  - "Best repo-grounded evidence wins."\ncommunication:\n  extension: ${yamlQuote(LOCAL_COMS_EXTENSION_PATH)}\n  tools:\n    - coms_list\n    - coms_send\n    - coms_get\n    - coms_await\n  prefer_polling_over_blocking_await: true\n  avoid_ping_pong_loops: true\nlifecycle:\n  tool: goal_agent_status\n  statuses:\n    - active\n    - idle\n    - blocked\n    - done\n  auto_continue_only_when: active\n  idle_blocked_and_done_stop_autonomous_loop: true\n  status_dir: ${yamlQuote(team.goalRoot ? `${team.goalRoot}/notes/agent-status` : `${team.promptDir}/agent-status`)}\nagents:\n${team.agents.map((agent) => `  - name: ${yamlQuote(agent.name)}\n    purpose: ${yamlQuote(agent.purpose)}\n    prompt: ${yamlQuote(agent.promptPath)}`).join("\n")}\n`;
 }
 
 async function writeGoalTeamYaml(team: GoalAgentTeamState, objective: string, ctx: ExtensionContext) {
@@ -1341,7 +1350,7 @@ export default function goalExtension(pi: ExtensionAPI) {
 		return prepared;
 	}
 
-	async function startLocalGoalAgentTeam(objective: string, ctx: ExtensionContext, goalRoot?: string): Promise<GoalAgentTeamState | null> {
+	async function startLocalGoalAgentTeam(objective: string, ctx: ExtensionContext, goalRoot?: string, boardUrl?: string): Promise<GoalAgentTeamState | null> {
 		if (!existsSync(LOCAL_COMS_EXTENSION_PATH)) {
 			ctx.ui.notify(`Local coms extension missing: ${LOCAL_COMS_EXTENSION_PATH}`, "warning");
 			return null;
@@ -1373,7 +1382,7 @@ export default function goalExtension(pi: ExtensionAPI) {
 			commands.push(makePiAgentCommand(ctx, role, project, promptPath, relGoalRoot));
 		}
 
-		const layout = fourPaneCmuxLayout(commands);
+		const layout = goalTeamCmuxLayout(commands, boardUrl);
 		const workspaceName = `goal ${project.replace(/^goal-/, "")}`.slice(0, 80);
 		const pendingTeam: GoalAgentTeamState = {
 			enabled: true,
@@ -1381,6 +1390,7 @@ export default function goalExtension(pi: ExtensionAPI) {
 			project,
 			workspaceName,
 			...(relGoalRoot ? { goalRoot: relGoalRoot } : {}),
+			...(boardUrl ? { boardUrl } : {}),
 			promptDir,
 			teamYamlPath,
 			startedAt: now(),
@@ -1427,7 +1437,7 @@ export default function goalExtension(pi: ExtensionAPI) {
 		prepared.prep.boardUrl = board.url;
 		prepared.prep.localBoardStatus = "live";
 		await writePreparedGoal(prepared);
-		await openBoardUrl(board.url, ctx);
+		if (!maybeStartAfter || !ctx.hasUI) await openBoardUrl(board.url, ctx);
 
 		const starter = `/goal Follow ${prepared.relRoot}/goal.md.`;
 		const gbState: GoalBuddyState = {
@@ -1456,17 +1466,22 @@ export default function goalExtension(pi: ExtensionAPI) {
 			if (start) {
 				lastGoalBuddy = gbState;
 				try {
-					const team = await startLocalGoalAgentTeam(`Follow ${prepared.relRoot}/goal.md.`, ctx, prepared.relRoot);
+					const team = await startLocalGoalAgentTeam(`Follow ${prepared.relRoot}/goal.md.`, ctx, prepared.relRoot, board.url);
 					if (team) {
 						lastAgentTeam = team;
 						ctx.ui.notify(`Opened local 4-agent CMUX workspace for ${team.project}`, "info");
+					} else {
+						await openBoardUrl(board.url, ctx);
 					}
 				} catch (error) {
 					ctx.ui.notify(`Local goal agent team not started: ${error instanceof Error ? error.message : String(error)}`, "warning");
+					await openBoardUrl(board.url, ctx);
 				}
 				goal = null;
 				persist();
 				updateStatus(ctx);
+			} else {
+				await openBoardUrl(board.url, ctx);
 			}
 		}
 	}
@@ -1531,7 +1546,7 @@ export default function goalExtension(pi: ExtensionAPI) {
 					const board = await startGoalBuddyBoard(goalBuddyRoot, ctx);
 					gbState.boardUrl = board.url;
 					if (board.pid) gbState.boardProcessPid = board.pid;
-					await openBoardUrl(board.url, ctx);
+					// The /goal team workspace embeds this board as a right-side browser panel.
 				} catch (error) {
 					ctx.ui.notify(`GoalBuddy board not started: ${error instanceof Error ? error.message : String(error)}`, "warning");
 				}
@@ -1546,16 +1561,18 @@ export default function goalExtension(pi: ExtensionAPI) {
 		if (gbState) lastGoalBuddy = gbState;
 		let launched = false;
 		try {
-			const team = await startLocalGoalAgentTeam(args, ctx, gbState?.goalRoot);
+			const team = await startLocalGoalAgentTeam(args, ctx, gbState?.goalRoot, gbState?.boardUrl);
 			if (team) {
 				lastAgentTeam = team;
 				launched = true;
 				ctx.ui.notify(`Opened local 4-agent CMUX workspace for ${team.project}`, "info");
 			} else {
 				ctx.ui.notify("No local goal agent team was started; parent /goal remains launcher-only and did not enter a goal loop.", "warning");
+				if (gbState?.boardUrl) await openBoardUrl(gbState.boardUrl, ctx);
 			}
 		} catch (error) {
 			ctx.ui.notify(`Local goal agent team not started: ${error instanceof Error ? error.message : String(error)}`, "warning");
+			if (gbState?.boardUrl) await openBoardUrl(gbState.boardUrl, ctx);
 		}
 		goal = null;
 		persist();
@@ -1599,6 +1616,7 @@ export default function goalExtension(pi: ExtensionAPI) {
 			`Parent loop: inactive (launcher/control surface only)`,
 			`CMUX workspace: ${team.workspaceRef ?? "unknown"}`,
 			`Goal root: ${team.goalRoot ?? "none"}`,
+			`GoalBuddy board: ${team.boardUrl ?? "none"}`,
 			`Team manifest: ${team.teamYamlPath ?? "none"}`,
 			`Lifecycle status dir: ${toWorkspaceRelative(ctx, teamAgentStatusDir(ctx, team))}`,
 			`Expected agents: ${team.agents.map((agent) => agent.name).join(", ")}`,

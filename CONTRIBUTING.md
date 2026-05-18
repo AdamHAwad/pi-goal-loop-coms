@@ -29,7 +29,7 @@ Thanks for improving this Pi extension pack.
    /goal-prep Make a tiny documentation improvement. Success means a GoalBuddy board is created and no unrelated files are changed.
    ```
 
-6. Start the printed `/goal Follow docs/goals/<slug>/goal.md.` handoff, confirm cmux opens the child-agent panels, then run `/goal team-status` and `/goal team-stop`.
+6. Start the printed `/goal Follow docs/goals/<slug>/goal.md.` handoff, confirm cmux opens the four child-agent panels plus the full-height right-side GoalBuddy browser panel, then run `/goal team-status` and `/goal team-stop`.
 
 7. If you changed computer-use config, run:
 
