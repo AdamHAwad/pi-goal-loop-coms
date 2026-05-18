@@ -25,7 +25,7 @@ Use it for coding tasks that benefit from a visible plan, specialized context wi
 | [Pi coding agent](https://github.com/earendil-works/pi-coding-agent) | Required | Provides extensions, slash commands, tools, and session events. |
 | Node.js + npm | Required | Used by installer, doctor, and GoalBuddy board commands. |
 | [GoalBuddy](https://github.com/tolibear/goalbuddy) | Required for Golden Goal Prep boards | Run through `npx --yes goalbuddy@0.3.6`. |
-| `cmux` | Required for the multi-agent workflow | `/goal` uses cmux commands to open the four child-agent panels and the GoalBuddy board. |
+| [`cmux`](https://github.com/manaflow-ai/cmux) | Required for the multi-agent workflow | `/goal` uses cmux commands to open the four child-agent panels and the GoalBuddy board. |
 | [`open-computer-use`](https://github.com/iFurySt/open-codex-computer-use) | Optional | Only needed if you want desktop UI/screenshot/accessibility tools. |
 
 ## Install
