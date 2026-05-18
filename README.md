@@ -4,6 +4,10 @@ Pi extension pack for **Golden Goal Prep**, durable goal loops, and a flat same-
 
 [Install](#install) · [Pi-agent install prompt](#pi-agent-install-prompt) · [Quick start](#quick-start) · [Commands](#commands) · [How the team works](#how-the-team-works) · [Security](#security) · [Troubleshooting](#troubleshooting)
 
+<p align="center">
+  <img src="docs/images/goal-team-cmux-layout.png" alt="cmux workspace showing four Pi goal agents in a two-by-two terminal grid with a full-height GoalBuddy browser panel on the right" width="100%">
+</p>
+
 ## What it does
 
 This repo installs a Pi workflow that can:
